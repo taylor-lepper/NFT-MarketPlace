@@ -86,29 +86,29 @@ contract DogMarket is ReentrancyGuard {
 
      // create array of nfts that user currently owns
     function getMyOwnedNfts() public view returns (DogNFT[] memory) {
-        uint256 totalItemCount = _nftIds.current();
-        uint256 itemCount = 0;
-        uint256 currentIndex = 0;
+        uint256 nftTotalCount = _nftIds.current();
+        uint256 ownedNftCount = 0;
+        uint256 index = 0;
 
         // loop over all nfts and check if msg.sender is owner (me)
-        for (uint256 i = 0; i < totalItemCount; i++) {
+        for (uint256 i = 0; i < nftTotalCount; i++) {
             // increment nfts owned by msg.sender
             if (idToNFT[i + 1].owner == msg.sender) {
-                itemCount++;
+                ownedNftCount++;
             }
         }
         // populate array of DogNFTs with amount of nfts msg.sender owns
-        DogNFT[] memory nfts = new DogNFT[](itemCount);
+        DogNFT[] memory nfts = new DogNFT[](ownedNftCount);
 
         // loop all nfts again and check if msg.sender is owner (me)
-        for (uint256 i = 0; i < totalItemCount; i++) {
+        for (uint256 i = 0; i < nftTotalCount; i++) {
             if (idToNFT[i + 1].owner == msg.sender) {
                 uint256 currentId = idToNFT[i + 1].id;
                 // get id
                 DogNFT storage currentItem = idToNFT[currentId];
                 // get reference to item from id
-                nfts[currentIndex] = currentItem;
-                currentIndex++;
+                nfts[index] = currentItem;
+                index++;
             }
         }
         return nfts;
@@ -144,21 +144,21 @@ contract DogMarket is ReentrancyGuard {
 
     // returns all nfts for sale
     function getAllNFTs() public view returns (DogNFT[] memory) {
-        uint256 itemCount = _nftIds.current();
-        uint256 unsoldItemCount = _nftIds.current() - _nftsSold.current();
-        uint256 currentIndex = 0;
+        uint256 nftAmount = _nftIds.current();
+        uint256 availableNFTs = _nftIds.current() - _nftsSold.current();
+        uint256 index = 0;
 
         // create array from NFT struct, length is unsold item count
-        DogNFT[] memory nfts = new DogNFT[](unsoldItemCount);
+        DogNFT[] memory nfts = new DogNFT[](availableNFTs);
 
         // loop over nfts and check if it has been sold, if not add to array
-        for (uint256 i = 0; i < itemCount; i++) {
+        for (uint256 i = 0; i < nftAmount; i++) {
             // address "this" means not sold
             if (idToNFT[i + 1].owner == address(this)) {
                 uint256 currentId = idToNFT[i + 1].id;
                 DogNFT storage currentItem = idToNFT[currentId];
-                nfts[currentIndex] = currentItem;
-                currentIndex++;
+                nfts[index] = currentItem;
+                index++;
             }
         }
         return nfts;
@@ -167,23 +167,23 @@ contract DogMarket is ReentrancyGuard {
    
     // create array of nfts user has listed for sale
     function getNFTsMinted() public view returns (DogNFT[] memory) {
-        uint256 totalItemCount = _nftIds.current();
-        uint256 itemCount = 0;
-        uint256 currentIndex = 0;
+        uint256 nftTotalCount = _nftIds.current();
+        uint256 mintedNftCount = 0;
+        uint256 index = 0;
 
         // loop over all nfts and check if msg.sender is seller(creator) (me)
-        for (uint256 i = 0; i < totalItemCount; i++) {
+        for (uint256 i = 0; i < nftTotalCount; i++) {
             // increment nfts owned by seller(creator)
             if (idToNFT[i + 1].seller == msg.sender) {
-                itemCount++;
+                mintedNftCount++;
             }
         }
 
         // create item array and populate length with amount of nfts created
-        DogNFT[] memory nfts = new DogNFT[](itemCount);
+        DogNFT[] memory nfts = new DogNFT[](mintedNftCount);
 
         // loop over all nfts and add those created by message.sender (me) to array
-        for(uint i = 0; i < totalItemCount; i++){
+        for(uint i = 0; i < nftTotalCount; i++){
                 // check if seller (creator) is msg.sender 
               if (idToNFT[i + 1].seller == msg.sender) {
                 // get current id
@@ -191,8 +191,8 @@ contract DogMarket is ReentrancyGuard {
                 // get reference to the current id by its id
                 DogNFT storage currentItem = idToNFT[currentId];
                 // add to array and increase index
-                nfts[currentIndex] = currentItem;
-                currentIndex++;
+                nfts[index] = currentItem;
+                index++;
             }
         }
         return nfts;
