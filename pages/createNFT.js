@@ -160,12 +160,18 @@ export default function CreateItem() {
     <>
       <ToastContainer position="top-center" pauseOnFocusLoss={false} />
       {!isTransacting ? (
+        <div className="bg-gray-100 h-full">
+          <p className="text-4xl font-bold pt-8 text-center">Create an NFT</p>
         <div className="flex justify-center">
+          
           <div className="w-1/2 flex flex-col pd-12">
-          <p className="text-4xl font-bold pt-4">Create an NFT</p>
+        
+          <label className="mt-8" for="name">Name:</label>
             <input
-              placeholder="Asset Name"
-              className="mt-8 border rounded p-4"
+              placeholder="Name Your NFT             ======> (maximum 30 characters)"
+              maxLength="30"
+              name="name"
+              className="mt-2 border rounded p-4"
               onChange={(e) =>
                 updateFormInput({
                   ...formInput,
@@ -173,8 +179,11 @@ export default function CreateItem() {
                 })
               }
             />
-            <textarea
-              placeholder="Asset Description"
+                <label className="mt-4" for="description">Description:</label>
+            <input  
+              placeholder="Describe Your NFT         ======> (maximum 50 characters)"
+              maxLength="50"
+              name="description"
               className="mt-2 border rounded p-4"
               onChange={(e) =>
                 updateFormInput({
@@ -183,9 +192,13 @@ export default function CreateItem() {
                 })
               }
             />
+                <label className="mt-4" for="price">Price:</label>
             <input
-              placeholder="Asset Price in Ether"
+              placeholder="Set An Auction Price      ======> (in Ether)"
               className="mt-2 border rounded p-4"
+              type="number" 
+              name="price" 
+              pattern="[0-9]"
               onChange={(e) =>
                 updateFormInput({
                   ...formInput,
@@ -193,26 +206,25 @@ export default function CreateItem() {
                 })
               }
             />
+             <label className="mt-4" for="file">File:</label>
             <input
               ref={fileUpload}
               type="file"
-              name="Asset"
-              className="my-4"
+              name="file"
+              className="mt-2"
               onChange={onChange}
             />
             {fileUrl && (
-              <img className="rounded mt-4" width="350" src={fileUrl} />
+              <img className="rounded mt-6 mb-2" width="350" src={fileUrl} />
             )}
             <button
               onClick={createItem}
-              className={
-                "font-bold mt-4 bg-purple-500 text-white rounded p-4 shadow-lg"
-              }
+              className="font-bold mt-4 bg-blue-700 text-white rounded p-4 shadow-lg"
             >
-              Create Digital Asset
+              Create Your NFT
             </button>
           </div>
-         
+          </div>
         </div>
       ) : (
         <div>
@@ -221,7 +233,7 @@ export default function CreateItem() {
               <div>
                 <button
                   onClick={handleButtonClick}
-                  className="border rounded px-4 py-3 bg-purple-600 text-white font-bold flex justify-right"
+                  className="border rounded px-4 py-3 bg-blue-700 text-white font-bold flex justify-right"
                 >
                   Back to home
                 </button>
@@ -270,12 +282,12 @@ export default function CreateItem() {
             className={nftTransactionHash ? undefined : styles.loading}
           ></div>
           <h1 className="flex justify-center">
-            <b>Step 1 :</b>
+            <b>Step 1: </b>
             <font> Confim wallet transaction in order to create the NFT</font>
           </h1>
           <br></br>
           <h1 className="flex justify-center">
-            <b>Step 2 :</b>
+            <b>Step 2: </b>
             <font>
               (Optional) Confirm wallet transaction in order to list NFT in the
               Marketplace
@@ -283,12 +295,12 @@ export default function CreateItem() {
           </h1>
           <br></br>
           <h1 className="flex justify-center">
-            <b>Step 3 :</b>
+            <b>Step 3: </b>
             <font>Wait for transaction to be mined...</font>
           </h1>
           <br></br>
           <h1 className="flex justify-center">
-            <b>Step 4 :</b>
+            <b>Step 4: </b>
             <font>
               (Optional) Review transaction on Etherscan by clicking on the
               transaction hashes. Both of which are highlighted above in blue!
