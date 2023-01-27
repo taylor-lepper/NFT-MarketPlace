@@ -100,6 +100,10 @@ export default function MyNFTs() {
         DogMarket.abi,
         signer
       );
+
+      const ownerOf = await marketContract.ownerOf(tokenId);
+      console.log(ownerOf);
+      
       let commissionFee = await marketContract.getCommissionFee();
       commissionFee = commissionFee.toString();
 

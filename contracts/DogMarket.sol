@@ -114,8 +114,8 @@ contract DogMarket is ReentrancyGuard {
         );
 
         // grab info from id
-        address creator = idToNFT[id].creator;
-        address previousOwner = idToNFT[id].owner;
+        address creator = idToNFT[tokenId].creator;
+        address payable previousOwner = idToNFT[tokenId].owner;
 
         // send item to smart contract address and emit event
         IERC721(tokenContractAddress).transferFrom(
@@ -125,15 +125,15 @@ contract DogMarket is ReentrancyGuard {
         );
 
         // modify the nft ownership
-        idToNFT[id].owner = address(this);
-        idToNFT[id].seller = previousOwner;
-        idToNFT[id].isOwned = false;
-        // increment total nfts sold and give commission to contract owner
+        idToNFT[tokenId].owner = payable(address(this));
+        idToNFT[tokenId].seller = previousOwner;
+        idToNFT[tokenId].isOwned = false;
+        // increment total nfts sold 
         _nftsSold.increment();
 
         // emit event for front end
         emit NftForSaleEvent(
-            id,
+            tokenId,
             price,
             false, // is not owned anymore (for sale)
             tokenId,
@@ -268,7 +268,12 @@ contract DogMarket is ReentrancyGuard {
     }
 
     // return the full NFT data by id
-    function getNftById(uint256 id) public view returns (DogNFT memory) {
-        return idToNFT[id];
+    function getNftById(uint256 tokenId) public view returns (DogNFT memory) {
+        return idToNFT[tokenId];
+    }
+
+       // return owner of token
+    function ownerOf(uint256 tokenId) public view returns (address) {
+        return idToNFT[tokenId].owner;
     }
 }
