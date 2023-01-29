@@ -21,10 +21,10 @@ export default function Market() {
     loadNFTs();
   }, []);
 
-  const reRoute = () => {
+  const reRouteToCreate = () => {
     router.push("/createNFT");
   };
-  const reRoute2 = () => {
+  const reRouteToMyNFTs = () => {
     router.push("/myNFTs");
   };
 
@@ -69,8 +69,9 @@ export default function Market() {
         return item;
       })
     );
-    setNfts(nftsForSale);
-    console.log("nfts", nfts);
+    let nftsSorted = nftsForSale.sort((nft1, nft2) => nft1.tokenId > nft2.tokenId? 1 : nft1.tokenId < nft2.tokenId? -1 : 0);
+    setNfts(nftsSorted);
+    console.log("nfts", nftsSorted);
     setLoadingState("loaded");
   }
 
@@ -111,7 +112,7 @@ export default function Market() {
         <div className="justify-center">
           <button
             className="w-80 items-center font-bold mt-4 mb-8 bg-blue-700 text-white rounded p-4 shadow-lg"
-            onClick={reRoute}
+            onClick={reRouteToCreate}
           >
             Create NFT
           </button>
@@ -122,7 +123,7 @@ export default function Market() {
         <div className="justify-center">
           <button
             className="w-80 items-center font-bold mt-4 mb-8 bg-blue-700 text-white rounded p-4 shadow-lg"
-            onClick={reRoute2}
+            onClick={reRouteToMyNFTs}
           >
             My NFTs
           </button>

@@ -160,70 +160,76 @@ export default function CreateItem() {
     <>
       <ToastContainer position="top-center" pauseOnFocusLoss={false} />
       {!isTransacting ? (
-        <div className="bg-gray-100 h-full">
+        <div className="">
           <p className="text-4xl font-bold pt-8 text-center">Create an NFT</p>
-        <div className="flex justify-center">
-          
-          <div className="w-1/2 flex flex-col pd-12">
-        
-          <label className="mt-8" htmlFor="name">Name:</label>
-            <input
-              placeholder="Name Your NFT             ======> (maximum 30 characters)"
-              maxLength="30"
-              name="name"
-              className="mt-2 border rounded p-4"
-              onChange={(e) =>
-                updateFormInput({
-                  ...formInput,
-                  name: e.target.value,
-                })
-              }
-            />
-                <label className="mt-4" htmlFor="description">Description:</label>
-            <input  
-              placeholder="Describe Your NFT         ======> (maximum 50 characters)"
-              maxLength="50"
-              name="description"
-              className="mt-2 border rounded p-4"
-              onChange={(e) =>
-                updateFormInput({
-                  ...formInput,
-                  description: e.target.value,
-                })
-              }
-            />
-                <label className="mt-4" htmlFor="price">Price:</label>
-            <input
-              placeholder="Set An Auction Price      ======> (in Ether)"
-              className="mt-2 border rounded p-4"
-              type="number" 
-              name="price" 
-              pattern="[0-9]"
-              onChange={(e) =>
-                updateFormInput({
-                  ...formInput,
-                  price: e.target.value,
-                })
-              }
-            />
-             <label className="mt-4" htmlFor="file">File:</label>
-            <input
-              ref={fileUpload}
-              type="file"
-              name="file"
-              className="mt-2"
-              onChange={onChange}
-            />
-            {fileUrl && (
-              <img className="rounded mt-6 mb-2" width="350" src={fileUrl} />
-            )}
-            <button
-              onClick={createItem}
-              className="font-bold mt-4 bg-blue-700 text-white rounded p-4 shadow-lg"
-            >
-              Create Your NFT
-            </button>
-          </div>
+          <div className="flex justify-center">
+            <div className="w-1/2 flex flex-col pd-12">
+              <label className="mt-8" htmlFor="name">
+                Name:
+              </label>
+              <input
+                placeholder="Name Your NFT             ======> (maximum 30 characters)"
+                maxLength="30"
+                name="name"
+                className="mt-2 border rounded p-4 bg-blue-100"
+                onChange={(e) =>
+                  updateFormInput({
+                    ...formInput,
+                    name: e.target.value,
+                  })
+                }
+              />
+              <label className="mt-4" htmlFor="description">
+                Description:
+              </label>
+              <input
+                placeholder="Describe Your NFT         ======> (maximum 50 characters)"
+                maxLength="50"
+                name="description"
+                className="mt-2 border rounded p-4 bg-blue-100"
+                onChange={(e) =>
+                  updateFormInput({
+                    ...formInput,
+                    description: e.target.value,
+                  })
+                }
+              />
+              <label className="mt-4" htmlFor="price">
+                Price:
+              </label>
+              <input
+                placeholder="Set An Auction Price      ======> (in Ether)"
+                className="mt-2 border rounded p-4 bg-blue-100"
+                type="number"
+                name="price"
+                pattern="[0-9]"
+                onChange={(e) =>
+                  updateFormInput({
+                    ...formInput,
+                    price: e.target.value,
+                  })
+                }
+              />
+              <label className="mt-4" htmlFor="file">
+                File:
+              </label>
+              <input
+                ref={fileUpload}
+                type="file"
+                name="file"
+                className="mt-2"
+                onChange={onChange}
+              />
+              {fileUrl && (
+                <img className="rounded mt-6 mb-2" width="350" src={fileUrl} />
+              )}
+              <button
+                onClick={createItem}
+                className="font-bold mt-4 bg-blue-700 text-white rounded p-4 shadow-lg"
+              >
+                Create Your NFT
+              </button>
+            </div>
           </div>
         </div>
       ) : (

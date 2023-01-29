@@ -1,8 +1,8 @@
 import { ethers } from "ethers";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import axios from "axios";
 import Web3Modal from "web3modal";
-import { useRouter } from "next/router";
 import Image from "next/image";
 import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer, toast } from "react-toastify";
@@ -17,10 +17,11 @@ import DogMarket from "../artifacts/contracts/DogMarket.sol/DogMarket.json";
 export default function MyNFTs() {
   const [nfts, setNfts] = useState([]);
   const [loadingState, setLoadingState] = useState("not-loaded");
+  const [marketTransactionHash, setMarketTransactionHash] = useState("");
   const [isTransacting, setIsTransacting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showPrice, setShowPrice] = useState(false);
   const [salePrice, setSalePrice] = useState();
+  const [buttonId, setButtonId] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -31,8 +32,8 @@ export default function MyNFTs() {
     router.push("/");
   };
 
-  const loadPrice = () => {
-    setShowPrice(true);
+  const loadPrice = (id) => {
+    setButtonId(id);
   };
 
   async function loadNFTs() {
@@ -77,8 +78,11 @@ export default function MyNFTs() {
         return item;
       })
     );
-    console.log("myNFTs", myNFTs);
-    setNfts(myNFTs);
+    let nftsSorted = myNFTs.sort((nft1, nft2) =>
+      nft1.tokenId > nft2.tokenId ? 1 : nft1.tokenId < nft2.tokenId ? -1 : 0
+    );
+    console.log("myNFTs", nftsSorted);
+    setNfts(nftsSorted);
     setLoadingState("loaded");
   }
 
@@ -89,9 +93,18 @@ export default function MyNFTs() {
     const signer = provider.getSigner();
 
     const tokenId = nft.tokenId;
-    console.log("id", nft.contractId);
+    const contractId = nft.contractId;
+    console.log("contractId", contractId);
     console.log("salePrice", salePrice);
     console.log("price", nft.price);
+
+    if (+salePrice <= 0 || salePrice === "" || salePrice === undefined) {
+      let errorMessage = "Please enter a price to sell greater than 0 ETH!";
+      toast.error(errorMessage, {
+        theme: "colored",
+      });
+      return;
+    }
 
     const price = ethers.utils.parseUnits(salePrice, "ether").toString();
 
@@ -108,16 +121,16 @@ export default function MyNFTs() {
         signer
       );
 
- //approve the market contract to transfer the NFT
- const approveTx = await tokenContract.approve(dogMarketAddress, tokenId);
- await approveTx.wait();
+      //approve the market contract to transfer the NFT
+      const approveTx = await tokenContract.approve(dogMarketAddress, tokenId);
+      await approveTx.wait();
 
       let commissionFee = await marketContract.getCommissionFee();
       commissionFee = commissionFee.toString();
 
       const transaction = await marketContract.sellMyNFT(
         dogTokenAddress,
-        tokenId,
+        contractId,
         price,
         {
           value: commissionFee,
@@ -136,10 +149,14 @@ export default function MyNFTs() {
       console.log("Error:", e);
       setIsTransacting(false);
       setIsLoading(false);
-      let errorMessage = "";
+      let errorMessage = e.message;
       if (e.message.includes("user rejected transaction")) {
         errorMessage = "User rejected transaction";
       }
+      if (e.message.includes("ERC721: invalid token ID")) {
+        errorMessage = "ERC721: invalid token ID";
+      }
+
       toast.error(errorMessage, {
         theme: "colored",
       });
@@ -172,11 +189,12 @@ export default function MyNFTs() {
       <h1 className="py-10 px-20 text-4xl font-bold text-center">
         NFTs You Currently Own
       </h1>
+      <ToastContainer position="top-center" pauseOnFocusLoss={false} />
       <div className="flex justify-center">
         <div className="p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
             {nfts.map((nft, i) => (
-              <div key={i} className="border shadow rounded-xl overflow-hidden">
+              <div key={i} className="border shadow rounded-xl overflow-hidden mb-10">
                 <div className="p-4 bg-black">
                   <p
                     style={{ height: "32px" }}
@@ -213,23 +231,32 @@ export default function MyNFTs() {
                     {nft.description}
                   </p>
                 </div>
-                <div className="p-4 bg-blue-800">
-                  <p className="text-xl font-semi-bold text-yellow-400">
-                    Price:
-                  </p>
-                  <p className="text-2xl mb-4 font-bold text-yellow-400">
-                    {nft.price} ETH
-                  </p>
-                  {!showPrice ? (
+
+                {buttonId !== nft.tokenId ? (
+                  <div className="p-4 bg-blue-800 h-full">
+                    <p className="text-xl font-semi-bold text-yellow-400">
+                      Price:
+                    </p>
+                    <p className="text-2xl mb-4 font-bold text-yellow-400">
+                      {nft.price} ETH
+                    </p>
                     <div className="grid place-items-center">
                       <button
                         className="w-76 items-center bg-red-700 shadow-lg text-white font-bold py-3 px-10 rounded"
-                        onClick={() => loadPrice()}
+                        onClick={() => loadPrice(nft.tokenId)}
                       >
                         Sell
                       </button>
                     </div>
-                  ) : (
+                  </div>
+                ) : buttonId === nft.tokenId ? (
+                  <div className="p-4 bg-blue-800 h-full">
+                    <p className="text-xl font-semi-bold text-yellow-400">
+                      Price:
+                    </p>
+                    <p className="text-2xl mb-4 font-bold text-yellow-400">
+                      {nft.price} ETH
+                    </p>
                     <div className="flex mb-4">
                       <div className="w-1/2 h-12">
                         <button
@@ -247,12 +274,14 @@ export default function MyNFTs() {
                           pattern="[0-9]"
                           placeholder="Price in ETH"
                           className="text-center w-11/12 mr-2 h-10 rounded-lg justfity-center"
-                          onChange={(eventObj)=> setSalePrice(eventObj.target.value)}
+                          onChange={(eventObj) =>
+                            setSalePrice(eventObj.target.value)
+                          }
                         />
                       </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>
