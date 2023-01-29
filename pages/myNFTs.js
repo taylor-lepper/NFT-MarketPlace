@@ -64,7 +64,7 @@ export default function MyNFTs() {
 
         let price = ethers.utils.formatUnits(token.price.toString(), "ether");
         let item = {
-          id: token.id.toNumber(),
+          contractId: token.contractId.toNumber(),
           price,
           tokenId: token.tokenId.toNumber(),
           creator: token.creator,
@@ -89,9 +89,10 @@ export default function MyNFTs() {
     const signer = provider.getSigner();
 
     const tokenId = nft.tokenId;
-    console.log("id", nft.id)
-
+    console.log("id", nft.contractId);
     console.log("salePrice", salePrice);
+    console.log("price", nft.price);
+
     const price = ethers.utils.parseUnits(salePrice, "ether").toString();
 
     try {
@@ -101,9 +102,16 @@ export default function MyNFTs() {
         signer
       );
 
-      const ownerOf = await marketContract.ownerOf(tokenId);
-      console.log(ownerOf);
-      
+      const tokenContract = new ethers.Contract(
+        dogTokenAddress,
+        DogToken.abi,
+        signer
+      );
+
+ //approve the market contract to transfer the NFT
+ const approveTx = await tokenContract.approve(dogMarketAddress, tokenId);
+ await approveTx.wait();
+
       let commissionFee = await marketContract.getCommissionFee();
       commissionFee = commissionFee.toString();
 

@@ -166,7 +166,7 @@ export default function CreateItem() {
           
           <div className="w-1/2 flex flex-col pd-12">
         
-          <label className="mt-8" for="name">Name:</label>
+          <label className="mt-8" htmlFor="name">Name:</label>
             <input
               placeholder="Name Your NFT             ======> (maximum 30 characters)"
               maxLength="30"
@@ -179,7 +179,7 @@ export default function CreateItem() {
                 })
               }
             />
-                <label className="mt-4" for="description">Description:</label>
+                <label className="mt-4" htmlFor="description">Description:</label>
             <input  
               placeholder="Describe Your NFT         ======> (maximum 50 characters)"
               maxLength="50"
@@ -192,7 +192,7 @@ export default function CreateItem() {
                 })
               }
             />
-                <label className="mt-4" for="price">Price:</label>
+                <label className="mt-4" htmlFor="price">Price:</label>
             <input
               placeholder="Set An Auction Price      ======> (in Ether)"
               className="mt-2 border rounded p-4"
@@ -206,7 +206,7 @@ export default function CreateItem() {
                 })
               }
             />
-             <label className="mt-4" for="file">File:</label>
+             <label className="mt-4" htmlFor="file">File:</label>
             <input
               ref={fileUpload}
               type="file"

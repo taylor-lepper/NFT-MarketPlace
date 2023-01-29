@@ -20,7 +20,7 @@ contract DogMarket is ReentrancyGuard {
 
     // "object" for each DogNFT
     struct DogNFT {
-        uint256 id;
+        uint256 contractId;
         uint256 price;
         bool isOwned;
         uint256 tokenId;
@@ -34,18 +34,7 @@ contract DogMarket is ReentrancyGuard {
     mapping(uint256 => DogNFT) private idToNFT;
 
     event NftCreationEvent(
-        uint256 indexed id,
-        uint256 price,
-        bool isOwned,
-        uint256 indexed tokenId,
-        address creator,
-        address seller,
-        address owner,
-        address indexed tokenContractAddress
-    );
-
-    event NftForSaleEvent(
-        uint256 indexed id,
+        uint256 indexed contractId,
         uint256 price,
         bool isOwned,
         uint256 indexed tokenId,
@@ -69,11 +58,11 @@ contract DogMarket is ReentrancyGuard {
 
         // create new item id for listing
         _nftIds.increment();
-        uint256 id = _nftIds.current();
+        uint256 contractId = _nftIds.current();
 
         // create struct of the new item
-        idToNFT[id] = DogNFT(
-            id,
+        idToNFT[contractId] = DogNFT(
+            contractId,
             price,
             false,
             tokenId,
@@ -90,7 +79,7 @@ contract DogMarket is ReentrancyGuard {
             tokenId
         );
         emit NftCreationEvent(
-            id,
+            contractId,
             price,
             false,
             tokenId,
@@ -104,18 +93,19 @@ contract DogMarket is ReentrancyGuard {
     // put an owned NFT up for sale
     function sellMyNFT(
         address tokenContractAddress,
-        uint256 tokenId,
+        uint256 contractId,
         uint256 price
     ) public payable nonReentrant {
         require(price > 0, "Price must be greater than 0 ETH");
         require(
             msg.value == commissionFee,
-            "Price must be equal to commision fee price"
+            "Msg value must be equal to commision fee price"
         );
 
         // grab info from id
-        address creator = idToNFT[tokenId].creator;
-        address payable previousOwner = idToNFT[tokenId].owner;
+        address creator = idToNFT[contractId].creator;
+        address previousOwner = idToNFT[contractId].owner;
+        uint256 tokenId = idToNFT[contractId].tokenId;
 
         // send item to smart contract address and emit event
         IERC721(tokenContractAddress).transferFrom(
@@ -124,24 +114,23 @@ contract DogMarket is ReentrancyGuard {
             tokenId
         );
 
-        // modify the nft ownership
-        idToNFT[tokenId].owner = payable(address(this));
-        idToNFT[tokenId].seller = previousOwner;
-        idToNFT[tokenId].isOwned = false;
-        // increment total nfts sold 
-        _nftsSold.increment();
+        // create new item id for listing
+        _nftIds.increment();
+        uint256 newId = _nftIds.current();
 
-        // emit event for front end
-        emit NftForSaleEvent(
-            tokenId,
+        idToNFT[newId] = DogNFT(
+            newId,
             price,
-            false, // is not owned anymore (for sale)
+            false,
             tokenId,
-            creator, // creator always remains same
-            msg.sender, // msg.sender posts the dog for sale (seller)
-            address(this), // market takes ownership
+            creator, // creator
+            payable(previousOwner), // seller
+            payable(address(this)), // new owner (marketplace)
             tokenContractAddress
         );
+
+        // delete old nft
+        deleteDog(contractId);
     }
 
     // create array of nfts that user currently owns
@@ -163,7 +152,7 @@ contract DogMarket is ReentrancyGuard {
         // loop all nfts again and check if msg.sender is owner (me)
         for (uint256 i = 0; i < nftTotalCount; i++) {
             if (idToNFT[i + 1].owner == msg.sender) {
-                uint256 currentId = idToNFT[i + 1].id;
+                uint256 currentId = idToNFT[i + 1].contractId;
                 // get id
                 DogNFT storage currentItem = idToNFT[currentId];
                 // get reference to item from id
@@ -175,15 +164,15 @@ contract DogMarket is ReentrancyGuard {
     }
 
     // transfers owner of DogNFT and moves funds in transaction
-    function transferDogNFT(address tokenContractAddress, uint256 id)
+    function transferDogNFT(address tokenContractAddress, uint256 contractId)
         public
         payable
         nonReentrant
     {
         // grab price, id, owner from struct
-        uint256 price = idToNFT[id].price;
-        uint256 tokenId = idToNFT[id].tokenId;
-        address payable previousOwner = idToNFT[id].owner;
+        uint256 price = idToNFT[contractId].price;
+        uint256 tokenId = idToNFT[contractId].tokenId;
+        address payable previousOwner = idToNFT[contractId].owner;
 
         require(
             msg.value == price,
@@ -191,7 +180,7 @@ contract DogMarket is ReentrancyGuard {
         );
 
         // transfer money to seller
-        idToNFT[id].seller.transfer(msg.value);
+        idToNFT[contractId].seller.transfer(msg.value);
         // transfer asset to owner from smart contract address
         IERC721(tokenContractAddress).transferFrom(
             address(this),
@@ -199,9 +188,9 @@ contract DogMarket is ReentrancyGuard {
             tokenId
         );
         // set owner of item to msg.sender and mark as sold
-        idToNFT[id].owner = payable(msg.sender);
-        idToNFT[id].seller = previousOwner;
-        idToNFT[id].isOwned = true;
+        idToNFT[contractId].owner = payable(msg.sender);
+        idToNFT[contractId].seller = previousOwner;
+        idToNFT[contractId].isOwned = true;
         // increment total nfts sold and give commission to contract owner
         _nftsSold.increment();
         payable(owner).transfer(commissionFee);
@@ -220,7 +209,7 @@ contract DogMarket is ReentrancyGuard {
         for (uint256 i = 0; i < nftAmount; i++) {
             // address "this" means not sold
             if (idToNFT[i + 1].owner == address(this)) {
-                uint256 currentId = idToNFT[i + 1].id;
+                uint256 currentId = idToNFT[i + 1].contractId;
                 DogNFT storage currentItem = idToNFT[currentId];
                 nfts[index] = currentItem;
                 index++;
@@ -251,7 +240,7 @@ contract DogMarket is ReentrancyGuard {
             // check if seller (creator) is msg.sender
             if (idToNFT[i + 1].creator == msg.sender) {
                 // get current id
-                uint256 currentId = idToNFT[i + 1].id;
+                uint256 currentId = idToNFT[i + 1].contractId;
                 // get reference to the current id by its id
                 DogNFT storage currentItem = idToNFT[currentId];
                 // add to array and increase index
@@ -268,12 +257,17 @@ contract DogMarket is ReentrancyGuard {
     }
 
     // return the full NFT data by id
-    function getNftById(uint256 tokenId) public view returns (DogNFT memory) {
-        return idToNFT[tokenId];
+    function getNftById(uint256 contractId) public view returns (DogNFT memory) {
+        return idToNFT[contractId];
     }
 
-       // return owner of token
-    function ownerOf(uint256 tokenId) public view returns (address) {
-        return idToNFT[tokenId].owner;
+    // return owner of token
+    function ownerOf(uint256 contractId) public view returns (address) {
+        return idToNFT[contractId].owner;
+    }
+
+     // delete token
+    function deleteDog(uint256 contractId) public {
+        delete idToNFT[contractId];
     }
 }

@@ -55,7 +55,7 @@ export default function Market() {
         const url = `https://nftstorage.link/ipfs/${link}`;
         // set up item for viewing on market
         let item = {
-          id: token.id.toNumber(),
+          contractId: token.contractId.toNumber(),
           price,
           tokenId: token.tokenId.toNumber(),
           seller: token.seller,
@@ -86,9 +86,10 @@ export default function Market() {
       signer
     );
 
+    console.log("contractId", nft.contractId);
     const price = ethers.utils.parseUnits(nft.price.toString(), "ether");
 
-    const transaction = await contract.transferDogNFT(dogTokenAddress, nft.tokenId, {
+    const transaction = await contract.transferDogNFT(dogTokenAddress, nft.contractId, {
       value: price,
     });
 

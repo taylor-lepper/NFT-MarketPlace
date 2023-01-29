@@ -52,10 +52,12 @@ export default function CreatorDashboard() {
         const url = `https://nftstorage.link/ipfs/${link}`;
         let price = ethers.utils.formatUnits(token.price.toString(), "ether");
         let item = {
+          contractId: token.contractId.toNumber(),
           price,
           tokenId: token.tokenId.toNumber(),
           seller: token.seller,
           owner: token.owner,
+          creator: token.creator,
           image: url || " ",
           name: meta.data.name,
           description: meta.data.description,
