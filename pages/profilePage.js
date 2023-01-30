@@ -297,17 +297,17 @@ export default function CreatorDashboard() {
                   priority
                   src={nft.image}
                   style={{
-                    width: "350px",
-                    height: "350px",
+                    width: "400px",
+                    height: "400px",
                     objectFit: "cover",
                   }}
-                  width={350}
-                  height={350}
+                  width={400}
+                  height={400}
                 />
                 <div
                   className="p-4 bg-gray-400"
                   style={{
-                    height: "132px",
+                    height: "100px",
                   }}
                 >
                   <p className="text-xl font-semi-bold text-white">
@@ -360,17 +360,17 @@ export default function CreatorDashboard() {
                         priority
                         src={nft.image}
                         style={{
-                          width: "350px",
-                          height: "350px",
+                          width: "400px",
+                          height: "400px",
                           objectFit: "cover",
                         }}
-                        width={350}
-                        height={350}
+                        width={400}
+                        height={400}
                       />
                       <div
                         className="p-4 bg-gray-400"
                         style={{
-                          height: "132px",
+                          height: "100px",
                         }}
                       >
                         <p className="text-xl font-semi-bold text-white">
@@ -423,17 +423,17 @@ export default function CreatorDashboard() {
                   alt="nft"
                   src={nft.image}
                   style={{
-                    width: "350px",
-                    height: "350px",
+                    width: "400px",
+                    height: "400px",
                     objectFit: "cover",
                   }}
-                  width={350}
-                  height={350}
+                  width={400}
+                  height={400}
                 />
                 <div
                   className="p-4 bg-gray-400"
                   style={{
-                    height: "132px",
+                    height: "100px",
                   }}
                 >
                   <p className="text-xl font-semi-bold text-white">

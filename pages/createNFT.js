@@ -11,21 +11,20 @@ import DogToken from "../artifacts/contracts/DogToken.sol/DogToken.json";
 import DogMarket from "../artifacts/contracts/DogMarket.sol/DogMarket.json";
 
 export default function CreateItem() {
-  const fileUpload = useRef(null);
   const router = useRouter();
+  // form inputs
+  const fileUpload = useRef(null);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
   const [fileUrl, setFileUrl] = useState(null);
+  // messages
   const [messageInfo, setMessageInfo] = useState(null);
   const [messageInfo1, setMessageInfo1] = useState(null);
   const [messageInfo2, setMessageInfo2] = useState(null);
   const [messageSuccess, setMessageSuccess] = useState(null);
+  const [messageSuccess2, setMessageSuccess2] = useState(null);
   const [messageError, setMessageError] = useState(null);
-  const [formInput, updateFormInput] = useState({
-    price: "",
-    name: "",
-    description: "",
-  });
-  const [nftTransactionHash, setNftTransactionHash] = useState("");
-  const [marketTransactionHash, setMarketTransactionHash] = useState("");
 
   // nft storage
   const apiKey = process.env.NEXT_PUBLIC_NFT_STORAGE_API_KEY;
@@ -52,10 +51,9 @@ export default function CreateItem() {
 
   // creates item and saves it to ipfs
   async function createItem() {
-    const { name, description, price } = formInput;
-    console.log("name", name);
-    console.log("description", description);
-    console.log("price", price);
+    console.log("name: ", name);
+    console.log("description: ", description);
+    console.log("price: ", price);
 
     if (!name || !description || !price || !fileUrl) {
       let formErrorMessage = "Please fill out all fields and upload an image.";
@@ -126,7 +124,6 @@ export default function CreateItem() {
       console.log("tokenTxn: ", tokenTxn);
       console.log("tokenTxn.gasUsed:", tokenTxn.gasUsed.toString());
       if (tokenTxn.byzantium == true) {
-        setNftTransactionHash(tokenTxn.transactionHash);
         setMessageSuccess("Token created successfully");
         setTimeout(() => {
           setMessageSuccess("");
@@ -136,8 +133,8 @@ export default function CreateItem() {
       let value = event.args[2];
       let tokenId = value.toNumber();
 
-      const price = ethers.utils
-        .parseUnits(formInput.price, "ether")
+      const priceEthers = ethers.utils
+        .parseUnits(price, "ether")
         .toString();
 
       const marketContract = new ethers.Contract(
@@ -157,7 +154,7 @@ export default function CreateItem() {
       const marketTransaction = await marketContract.createDogNFT(
         dogTokenAddress,
         tokenId,
-        price,
+        priceEthers,
         {
           value: commissionFee,
         }
@@ -165,16 +162,20 @@ export default function CreateItem() {
       const marketTxn = await marketTransaction.wait();
       console.log("marketTxn", marketTxn);
       if (marketTxn.byzantium == true) {
-        setMarketTransactionHash(marketTxn.transactionHash);
+        setName("");
+        setDescription("");
+        setPrice("");
+        setFileUrl(null);
         setMessageInfo();
         setMessageInfo2();
-        setMessageSuccess(
+        setMessageSuccess();
+        setMessageSuccess2(
           "NFT Listing created successfully!\nRedirecting to the Market!"
         );
         setTimeout(() => {
-          setMessageSuccess("");
+          setMessageSuccess2("");
           reRouteMarket();
-        }, 3000);
+        }, 2500);
       }
     } catch (e) {
       console.log("Error:", e);
@@ -231,6 +232,13 @@ export default function CreateItem() {
             )}
           </div>
           <div className="">
+            {messageSuccess2 && (
+              <h1 className="mt-6 mb-6 mr-20 ml-20 whitespace-pre-wrap place-items-center border border-black rounded bg-green-300 h-30 text-center p-6 text-xl">
+                {messageSuccess2}
+              </h1>
+            )}
+          </div>
+          <div className="">
             {messageError && (
               <h1 className="mt-6 mb-6 mr-20 ml-20 border border-black place-items-center rounded bg-red-500 h-30 text-center p-6 text-xl">
                 {messageError}
@@ -248,12 +256,8 @@ export default function CreateItem() {
               maxLength="30"
               name="name"
               className="mt-2 border rounded p-4 bg-blue-200 font-black text-lg"
-              onChange={(e) =>
-                updateFormInput({
-                  ...formInput,
-                  name: e.target.value,
-                })
-              }
+              value={name}
+              onChange={(eventObj) => setName(eventObj.target.value)}
             />
             <label className="mt-4 text-xl" htmlFor="description">
               Description:
@@ -262,13 +266,9 @@ export default function CreateItem() {
               placeholder="Describe Your NFT         ======> (maximum 50 characters)"
               maxLength="50"
               name="description"
-              className="mt-2 border rounded p-4 bg-blue-200 font-black text-lg" 
-              onChange={(e) =>
-                updateFormInput({
-                  ...formInput,
-                  description: e.target.value,
-                })
-              }
+              className="mt-2 border rounded p-4 bg-blue-200 font-black text-lg"
+              value={description}
+              onChange={(eventObj) => setDescription(eventObj.target.value)}
             />
             <label className="mt-4 text-xl" htmlFor="price">
               Price:
@@ -279,12 +279,8 @@ export default function CreateItem() {
               type="number"
               name="price"
               pattern="[0-9]"
-              onChange={(e) =>
-                updateFormInput({
-                  ...formInput,
-                  price: e.target.value,
-                })
-              }
+              value={price}
+              onChange={(eventObj) => setPrice(eventObj.target.value)}
             />
             <label className="mt-4 text-xl" htmlFor="file">
               File:
@@ -297,24 +293,24 @@ export default function CreateItem() {
               onChange={fileOnChange}
             />
             {fileUrl && (
-                <div className="my-4 p-4 bg-blue-200 border text-center border-4 border-black rounded-xl">
-                  <p className="mt-6 mb-2 text-2xl font-semi-bold">
-                    File Preview:
-                  </p>
-                  <Image
-                    priority
-                    alt="fileUpload"
-                    src={fileUrl}
-                    className="rounded-lg border-black mt-6 mb-2 mx-auto"
-                    style={{
-                      width: "350px",
-                      height: "350px",
-                      objectFit: "cover",
-                    }}
-                    width={350}
-                    height={350}
-                  />
-                </div> 
+              <div className="my-4 p-4 bg-blue-200 border text-center border-4 border-black rounded-xl">
+                <p className="mt-6 mb-2 text-2xl font-semi-bold">
+                  File Preview:
+                </p>
+                <Image
+                  priority
+                  alt="fileUpload"
+                  src={fileUrl}
+                  className="rounded-lg border-black mt-6 mb-2 mx-auto"
+                  style={{
+                    width: "350px",
+                    height: "350px",
+                    objectFit: "cover",
+                  }}
+                  width={350}
+                  height={350}
+                />
+              </div>
             )}
             <button
               onClick={createItem}

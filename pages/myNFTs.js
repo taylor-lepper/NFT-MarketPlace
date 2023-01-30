@@ -333,7 +333,7 @@ export default function MyNFTs() {
                 <div
                   className="p-4 bg-gray-400"
                   style={{
-                    height: "132px",
+                    height: "100px",
                   }}
                 >
                   <p className="text-xl font-semi-bold text-white">

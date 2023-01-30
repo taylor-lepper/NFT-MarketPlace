@@ -15,6 +15,7 @@ export default function Market() {
   const [messageSuccess, setMessageSuccess] = useState(null);
   const [messageError, setMessageError] = useState(null);
   const [nfts, setNfts] = useState([]);
+  const [floor, setFloor] = useState("");
   const [loadingState, setLoadingState] = useState("not-loaded");
   const router = useRouter();
 
@@ -70,6 +71,7 @@ export default function Market() {
         return item;
       })
     );
+    getFloorPrice(nftsForSale);
     let nftsSorted = nftsForSale.sort((nft1, nft2) =>
       nft1.tokenId > nft2.tokenId ? 1 : nft1.tokenId < nft2.tokenId ? -1 : 0
     );
@@ -94,7 +96,9 @@ export default function Market() {
     const price = ethers.utils.parseUnits(nft.price.toString(), "ether");
 
     try {
-      setMessageInfo("Confirm the transaction to purchase the NFT.\nIf you've changed your mind, simply click 'reject.'");
+      setMessageInfo(
+        "Confirm the transaction to purchase the NFT.\nIf you've changed your mind, simply click 'reject.'"
+      );
       setTimeout(() => {
         setMessageInfo("");
       }, 6000);
@@ -125,6 +129,15 @@ export default function Market() {
       return;
     }
   }
+
+  const getFloorPrice = (nfts) => {
+    let nftSortByPrice = nfts.sort((nft1, nft2) =>
+      nft1.price > nft2.price ? 1 : nft1.price < nft2.price ? -1 : 0
+    );
+    let floorPrice = nftSortByPrice[0].price;
+    console.log("floorPrice: ", floorPrice, "ETH");
+    setFloor(floorPrice);
+  };
 
   if (loadingState === "loaded" && !nfts.length)
     return (
@@ -192,7 +205,10 @@ export default function Market() {
         <div className="px-4" style={{ maxWidth: "1600px" }}>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
             {nfts.map((nft, i) => (
-              <div key={i} className="border shadow rounded-xl overflow-hidden mx-2">
+              <div
+                key={i}
+                className="border shadow rounded-xl overflow-hidden mx-2"
+              >
                 <div className="p-4 bg-black">
                   <p
                     style={{ height: "32px" }}
@@ -209,17 +225,17 @@ export default function Market() {
                   priority
                   src={nft.image}
                   style={{
-                    width: "350px",
-                    height: "350px",
+                    width: "400px",
+                    height: "400px",
                     objectFit: "cover",
                   }}
-                  width={350}
-                  height={350}
+                  width={400}
+                  height={400}
                 />
                 <div
                   className="p-4 bg-gray-400"
                   style={{
-                    height: "132px",
+                    height: "100px",
                   }}
                 >
                   <p className="text-xl font-semi-bold text-white">
@@ -235,6 +251,13 @@ export default function Market() {
                   </p>
                   <p className="text-2xl mb-4 font-bold text-yellow-400">
                     {nft.price} ETH
+                  </p>
+
+                  <p className="text-lg font-semi-bold text-yellow-400">
+                    Collection Floor Price:
+                  </p>
+                  <p className="text-xl mb-4 font-bold text-yellow-400">
+                    {floor} ETH
                   </p>
 
                   <div className="grid place-items-center">
