@@ -1,11 +1,9 @@
 import { useState, useRef } from "react";
+import { useRouter } from "next/router";
 import { ethers } from "ethers";
 import Web3Modal from "web3modal";
-import { useRouter } from "next/router";
 import { NFTStorage } from "nft.storage";
-import { ToastContainer, toast } from "react-toastify";
-import styles from "../styles/CreateNFT.module.css";
-import "react-toastify/dist/ReactToastify.css";
+import Image from "next/image";
 
 import { dogTokenAddress, dogMarketAddress } from "../config";
 
@@ -14,9 +12,13 @@ import DogMarket from "../artifacts/contracts/DogMarket.sol/DogMarket.json";
 
 export default function CreateItem() {
   const fileUpload = useRef(null);
-  const apiKey = process.env.NEXT_PUBLIC_NFT_STORAGE_API_KEY;
-  const client = new NFTStorage({ token: apiKey });
+  const router = useRouter();
   const [fileUrl, setFileUrl] = useState(null);
+  const [messageInfo, setMessageInfo] = useState(null);
+  const [messageInfo1, setMessageInfo1] = useState(null);
+  const [messageInfo2, setMessageInfo2] = useState(null);
+  const [messageSuccess, setMessageSuccess] = useState(null);
+  const [messageError, setMessageError] = useState(null);
   const [formInput, updateFormInput] = useState({
     price: "",
     name: "",
@@ -24,44 +26,54 @@ export default function CreateItem() {
   });
   const [nftTransactionHash, setNftTransactionHash] = useState("");
   const [marketTransactionHash, setMarketTransactionHash] = useState("");
-  const [isTransacting, setIsTransacting] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
 
-  async function onChange() {
+  // nft storage
+  const apiKey = process.env.NEXT_PUBLIC_NFT_STORAGE_API_KEY;
+  const nftStorageClient = new NFTStorage({ token: apiKey });
+
+  // deals with image upload from disc
+  async function fileOnChange() {
     try {
       const url = URL.createObjectURL(fileUpload.current.files[0]);
       setFileUrl(url);
     } catch (e) {
       console.log("Error:", e);
-      let errorMessage = "";
+      let errorMessage = e.message;
       if (e.message.includes("user rejected transaction")) {
         errorMessage = "User rejected transaction";
       }
-      toast.error(errorMessage, {
-        theme: "colored",
-      });
+      setMessageError(errorMessage);
+      setTimeout(() => {
+        setMessageError("");
+      }, 4000);
+      return;
     }
   }
 
-  //creates item and saves it to ipfs
+  // creates item and saves it to ipfs
   async function createItem() {
-    setIsLoading(true);
     const { name, description, price } = formInput;
     console.log("name", name);
     console.log("description", description);
     console.log("price", price);
 
     if (!name || !description || !price || !fileUrl) {
-      let blankMessage = "Please fill out all fields";
-      toast.error(blankMessage, {
-        theme: "dark",
-      });
+      let formErrorMessage = "Please fill out all fields and upload an image.";
+      setMessageError(formErrorMessage);
+      setTimeout(() => {
+        setMessageError("");
+      }, 4000);
+      return;
     }
 
     try {
+      let metaMaskMessage = `Please wait for the MetaMask wallet to appear. \nYou must accept both transactions.`;
+      setMessageInfo(metaMaskMessage);
+      setTimeout(() => {
+        setMessageInfo("");
+      }, 160000);
       const { fileName, type } = fileUpload.current.files[0];
-      const metadata = await client.store({
+      const nftStorageData = await nftStorageClient.store({
         name,
         description,
         image: new File(fileUpload.current.files, fileName, {
@@ -71,249 +83,248 @@ export default function CreateItem() {
           price,
         },
       });
-      const link = metadata.url.split("ipfs://")[1];
+      const link = nftStorageData.url.split("ipfs://")[1];
       const url = `https://nftstorage.link/ipfs/${link}`;
       createSale(url);
-      setIsLoading(false);
     } catch (e) {
       console.log("Error uploading file: ", e);
-      let errorMessage = "Error uploading file";
+      let errorMessage = e.message;
       if (e.message.includes("user rejected transaction")) {
-        errorMessage = "User rejected transaction";
+        errorMessage = "User rejected the Wallet transaction.";
       }
-      toast.error(errorMessage, {
-        theme: "colored",
-      });
+      setMessageError(errorMessage);
+      setTimeout(() => {
+        setMessageError("");
+      }, 4000);
+      return;
     }
   }
 
-  async function createSale(metadata) {
-    console.log("metadata: ", metadata);
+  // create token and market listing
+  async function createSale(nftStorageData) {
+    console.log("nftStorageData: ", nftStorageData);
     const web3Modal = new Web3Modal();
     const connection = await web3Modal.connect();
     const provider = new ethers.providers.Web3Provider(connection);
     const signer = provider.getSigner();
 
-    let contract = new ethers.Contract(dogTokenAddress, DogToken.abi, signer);
+    const tokenContract = new ethers.Contract(
+      dogTokenAddress,
+      DogToken.abi,
+      signer
+    );
     try {
-      setIsTransacting(true);
-      setIsLoading(true);
-      let transaction = await contract.createDogToken(metadata);
-      let tx = await transaction.wait();
+      setMessageInfo1("#1\nCreate the token.");
+      setTimeout(() => {
+        setMessageInfo1("");
+      }, 10000);
+      const tokenTransaction = await tokenContract.createDogToken(
+        nftStorageData
+      );
+      let tokenTxn = await tokenTransaction.wait();
 
-      console.log("tx:", tx);
-      console.log("tx.gasUsed:", tx.gasUsed.toString());
-      if (tx.byzantium == true) {
-        setNftTransactionHash(tx.transactionHash);
-        toast.success("NFT created successfully", {
-          theme: "colored",
-        });
+      console.log("tokenTxn: ", tokenTxn);
+      console.log("tokenTxn.gasUsed:", tokenTxn.gasUsed.toString());
+      if (tokenTxn.byzantium == true) {
+        setNftTransactionHash(tokenTxn.transactionHash);
+        setMessageSuccess("Token created successfully");
+        setTimeout(() => {
+          setMessageSuccess("");
+        }, 6000);
       }
-      let event = tx.events[0];
+      let event = tokenTxn.events[0];
       let value = event.args[2];
       let tokenId = value.toNumber();
+
       const price = ethers.utils
         .parseUnits(formInput.price, "ether")
         .toString();
 
-      contract = new ethers.Contract(dogMarketAddress, DogMarket.abi, signer);
-      let listFee = await contract.getCommissionFee();
-      listFee = listFee.toString();
+      const marketContract = new ethers.Contract(
+        dogMarketAddress,
+        DogMarket.abi,
+        signer
+      );
+      let commissionFee = await marketContract.getCommissionFee();
+      commissionFee = commissionFee.toString();
 
-      transaction = await contract.createDogNFT(
+      setMessageInfo1();
+      setMessageInfo2("#2\nCreate a Market item, and list for sale.");
+      setTimeout(() => {
+        setMessageInfo2("");
+      }, 8000);
+      // creation of market listing
+      const marketTransaction = await marketContract.createDogNFT(
         dogTokenAddress,
         tokenId,
         price,
         {
-          value: listFee,
+          value: commissionFee,
         }
       );
-
-      const marketTx = await transaction.wait();
-      if (marketTx.byzantium == true) {
-        setMarketTransactionHash(marketTx.transactionHash);
-        toast.success("Market Item Created successfully", {
-          theme: "colored",
-        });
+      const marketTxn = await marketTransaction.wait();
+      console.log("marketTxn", marketTxn);
+      if (marketTxn.byzantium == true) {
+        setMarketTransactionHash(marketTxn.transactionHash);
+        setMessageInfo();
+        setMessageInfo2();
+        setMessageSuccess(
+          "NFT Listing created successfully!\nRedirecting to the Market!"
+        );
+        setTimeout(() => {
+          setMessageSuccess("");
+          reRouteMarket();
+        }, 3000);
       }
-      setIsLoading(false);
     } catch (e) {
       console.log("Error:", e);
-      setIsTransacting(false);
-      setIsLoading(false);
-      let errorMessage = "";
+      let errorMessage = e.message;
       if (e.message.includes("user rejected transaction")) {
-        errorMessage = "User rejected transaction";
+        errorMessage = "User rejected the Wallet transaction.";
       }
-      toast.error(errorMessage, {
-        theme: "colored",
-      });
+      setMessageInfo();
+      setMessageInfo1();
+      setMessageInfo2();
+      setMessageError(errorMessage);
+      setTimeout(() => {
+        setMessageError("");
+      }, 4000);
+      return;
     }
   }
 
-  const handleButtonClick = () => {
-    setIsTransacting(false);
+  const reRouteMarket = () => {
     router.push("/");
   };
 
   return (
     <>
-      <ToastContainer position="top-center" pauseOnFocusLoss={false} />
-      {!isTransacting ? (
-        <div className="">
-          <p className="text-4xl font-bold pt-8 text-center">Create an NFT</p>
-          <div className="flex justify-center">
-            <div className="w-1/2 flex flex-col pd-12">
-              <label className="mt-8" htmlFor="name">
-                Name:
-              </label>
-              <input
-                placeholder="Name Your NFT             ======> (maximum 30 characters)"
-                maxLength="30"
-                name="name"
-                className="mt-2 border rounded p-4 bg-blue-100"
-                onChange={(e) =>
-                  updateFormInput({
-                    ...formInput,
-                    name: e.target.value,
-                  })
-                }
-              />
-              <label className="mt-4" htmlFor="description">
-                Description:
-              </label>
-              <input
-                placeholder="Describe Your NFT         ======> (maximum 50 characters)"
-                maxLength="50"
-                name="description"
-                className="mt-2 border rounded p-4 bg-blue-100"
-                onChange={(e) =>
-                  updateFormInput({
-                    ...formInput,
-                    description: e.target.value,
-                  })
-                }
-              />
-              <label className="mt-4" htmlFor="price">
-                Price:
-              </label>
-              <input
-                placeholder="Set An Auction Price      ======> (in Ether)"
-                className="mt-2 border rounded p-4 bg-blue-100"
-                type="number"
-                name="price"
-                pattern="[0-9]"
-                onChange={(e) =>
-                  updateFormInput({
-                    ...formInput,
-                    price: e.target.value,
-                  })
-                }
-              />
-              <label className="mt-4" htmlFor="file">
-                File:
-              </label>
-              <input
-                ref={fileUpload}
-                type="file"
-                name="file"
-                className="mt-2"
-                onChange={onChange}
-              />
-              {fileUrl && (
-                <img className="rounded mt-6 mb-2" width="350" src={fileUrl} />
-              )}
-              <button
-                onClick={createItem}
-                className="font-bold mt-4 bg-blue-700 text-white rounded p-4 shadow-lg"
-              >
-                Create Your NFT
-              </button>
-            </div>
+      <div className="">
+        <p className="text-4xl font-bold pt-8 text-center">Create an NFT</p>
+        <div className="justify-center">
+          <div className="">
+            {messageInfo && (
+              <h1 className="mt-6 mb-6 mr-20 ml-20 whitespace-pre-wrap place-items-center border border-black rounded bg-yellow-400 h-30 text-center p-6 text-xl">
+                {messageInfo}
+              </h1>
+            )}
+          </div>
+          <div className="">
+            {messageInfo1 && (
+              <h1 className="mt-6 mb-6 mr-20 ml-20 whitespace-pre-wrap place-items-center border border-black rounded bg-yellow-200 h-30 text-center p-6 text-xl">
+                {messageInfo1}
+              </h1>
+            )}
+          </div>
+          <div className="">
+            {messageInfo2 && (
+              <h1 className="mt-6 mb-6 mr-20 ml-20 whitespace-pre-wrap place-items-center border border-black rounded bg-yellow-200 h-30 text-center p-6 text-xl">
+                {messageInfo2}
+              </h1>
+            )}
+          </div>
+          <div className="">
+            {messageSuccess && (
+              <h1 className="mt-6 mb-6 mr-20 ml-20 whitespace-pre-wrap place-items-center border border-black rounded bg-green-300 h-30 text-center p-6 text-xl">
+                {messageSuccess}
+              </h1>
+            )}
+          </div>
+          <div className="">
+            {messageError && (
+              <h1 className="mt-6 mb-6 mr-20 ml-20 border border-black place-items-center rounded bg-red-500 h-30 text-center p-6 text-xl">
+                {messageError}
+              </h1>
+            )}
           </div>
         </div>
-      ) : (
-        <div>
-          {nftTransactionHash && (
-            <div className="flex flex-col mt-2 border rounded p-4 flex-row-reverse">
-              <div>
-                <button
-                  onClick={handleButtonClick}
-                  className="border rounded px-4 py-3 bg-blue-700 text-white font-bold flex justify-right"
-                >
-                  Back to home
-                </button>
-              </div>
-              <h1 className="flex justify-center">
-                <font color="purple">
-                  <b>Transaction Receipts</b>
-                </font>
-              </h1>
-              <p className="flex justify-center">
-                <strong>View your Transactions on Etherscan:</strong>
-              </p>
-              <br></br>
-              {nftTransactionHash && (
-                <p>
-                  <a
-                    href={`https://goerli.etherscan.io/tx/${nftTransactionHash}`}
-                    target="_blank"
-                  >
-                    <strong>NFT transaction receipt: </strong>
-                    <font color="blue">{` ${nftTransactionHash}`}</font>
-                    <br></br>
-                    <br></br>
-                  </a>
-                </p>
-              )}
-              {marketTransactionHash && (
-                <p>
-                  <a
-                    href={`https://goerli.etherscan.io/tx/${marketTransactionHash}`}
-                    target="_blank"
-                  >
-                    <strong>Market transaction receipt: </strong>
-                    <font color="blue">{` ${marketTransactionHash}`} </font>
-                  </a>
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Transaction Instructions/Steps */}
-          <h1 className="flex justify-center">
-            <b>Transaction in progress. Please wait...</b>
-          </h1>
-          <div
-            className={nftTransactionHash ? undefined : styles.loading}
-          ></div>
-          <h1 className="flex justify-center">
-            <b>Step 1: </b>
-            <font> Confim wallet transaction in order to create the NFT</font>
-          </h1>
-          <br></br>
-          <h1 className="flex justify-center">
-            <b>Step 2: </b>
-            <font>
-              (Optional) Confirm wallet transaction in order to list NFT in the
-              Marketplace
-            </font>
-          </h1>
-          <br></br>
-          <h1 className="flex justify-center">
-            <b>Step 3: </b>
-            <font>Wait for transaction to be mined...</font>
-          </h1>
-          <br></br>
-          <h1 className="flex justify-center">
-            <b>Step 4: </b>
-            <font>
-              (Optional) Review transaction on Etherscan by clicking on the
-              transaction hashes. Both of which are highlighted above in blue!
-            </font>
-          </h1>
+        <div className="flex justify-center">
+          <div className="w-1/2 flex flex-col pd-12">
+            <label className="mt-8 text-xl" htmlFor="name">
+              Name:
+            </label>
+            <input
+              placeholder="Name Your NFT             ======> (maximum 30 characters)"
+              maxLength="30"
+              name="name"
+              className="mt-2 border rounded p-4 bg-blue-200 font-black text-lg"
+              onChange={(e) =>
+                updateFormInput({
+                  ...formInput,
+                  name: e.target.value,
+                })
+              }
+            />
+            <label className="mt-4 text-xl" htmlFor="description">
+              Description:
+            </label>
+            <input
+              placeholder="Describe Your NFT         ======> (maximum 50 characters)"
+              maxLength="50"
+              name="description"
+              className="mt-2 border rounded p-4 bg-blue-200 font-black text-lg" 
+              onChange={(e) =>
+                updateFormInput({
+                  ...formInput,
+                  description: e.target.value,
+                })
+              }
+            />
+            <label className="mt-4 text-xl" htmlFor="price">
+              Price:
+            </label>
+            <input
+              placeholder="Set An Auction Price      ======> (in Ether)"
+              className="mt-2 border rounded p-4 bg-blue-200 font-black text-lg"
+              type="number"
+              name="price"
+              pattern="[0-9]"
+              onChange={(e) =>
+                updateFormInput({
+                  ...formInput,
+                  price: e.target.value,
+                })
+              }
+            />
+            <label className="mt-4 text-xl" htmlFor="file">
+              File:
+            </label>
+            <input
+              ref={fileUpload}
+              type="file"
+              name="file"
+              className="mt-2 text-lg"
+              onChange={fileOnChange}
+            />
+            {fileUrl && (
+                <div className="my-4 p-4 bg-blue-200 border text-center border-4 border-black rounded-xl">
+                  <p className="mt-6 mb-2 text-2xl font-semi-bold">
+                    File Preview:
+                  </p>
+                  <Image
+                    priority
+                    alt="fileUpload"
+                    src={fileUrl}
+                    className="rounded-lg border-black mt-6 mb-2 mx-auto"
+                    style={{
+                      width: "350px",
+                      height: "350px",
+                      objectFit: "cover",
+                    }}
+                    width={350}
+                    height={350}
+                  />
+                </div> 
+            )}
+            <button
+              onClick={createItem}
+              className="font-bold mt-4 mb-10 bg-blue-700 text-white rounded p-4 shadow-lg"
+            >
+              Create Your NFT
+            </button>
+          </div>
         </div>
-      )}
+      </div>
     </>
   );
 }

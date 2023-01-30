@@ -4,8 +4,6 @@ import { useRouter } from "next/router";
 import axios from "axios";
 import Web3Modal from "web3modal";
 import Image from "next/image";
-import "react-toastify/dist/ReactToastify.css";
-import { ToastContainer, toast } from "react-toastify";
 
 // contract addresses
 import { dogTokenAddress, dogMarketAddress } from "../config";
@@ -15,11 +13,14 @@ import DogToken from "../artifacts/contracts/DogToken.sol/DogToken.json";
 import DogMarket from "../artifacts/contracts/DogMarket.sol/DogMarket.json";
 
 export default function MyNFTs() {
+  const [messageInfo, setMessageInfo] = useState(null);
+  const [messageInfo1, setMessageInfo1] = useState(null);
+  const [messageInfo2, setMessageInfo2] = useState(null);
+  const [messageSuccess, setMessageSuccess] = useState(null);
+  const [messageError, setMessageError] = useState(null);
   const [nfts, setNfts] = useState([]);
   const [loadingState, setLoadingState] = useState("not-loaded");
   const [marketTransactionHash, setMarketTransactionHash] = useState("");
-  const [isTransacting, setIsTransacting] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [salePrice, setSalePrice] = useState();
   const [buttonId, setButtonId] = useState(null);
   const router = useRouter();
@@ -36,6 +37,7 @@ export default function MyNFTs() {
     setButtonId(id);
   };
 
+  // load NFTs to page
   async function loadNFTs() {
     const web3Modal = new Web3Modal();
     const connection = await web3Modal.connect();
@@ -86,6 +88,7 @@ export default function MyNFTs() {
     setLoadingState("loaded");
   }
 
+  // sell an owned NFT back to market
   async function sellNFT(nft) {
     const web3Modal = new Web3Modal();
     const connection = await web3Modal.connect();
@@ -100,15 +103,22 @@ export default function MyNFTs() {
 
     if (+salePrice <= 0 || salePrice === "" || salePrice === undefined) {
       let errorMessage = "Please enter a price to sell greater than 0 ETH!";
-      toast.error(errorMessage, {
-        theme: "colored",
-      });
+      setMessageError(errorMessage);
+      setTimeout(() => {
+        setMessageError("");
+      }, 4000);
       return;
     }
 
     const price = ethers.utils.parseUnits(salePrice, "ether").toString();
 
     try {
+      setMessageInfo(
+        "Please wait for MetaMask to appear.\nYou must confirm both transactions."
+      );
+      setTimeout(() => {
+        setMessageInfo("");
+      }, 16000);
       const marketContract = new ethers.Contract(
         dogMarketAddress,
         DogMarket.abi,
@@ -121,13 +131,27 @@ export default function MyNFTs() {
         signer
       );
 
-      //approve the market contract to transfer the NFT
+      setMessageInfo1(
+        "#1\nGive permission for the market to transfer ownership."
+      );
+      setTimeout(() => {
+        setMessageInfo1("");
+      }, 10000);
+
+      // approve the market contract to transfer the NFT
       const approveTx = await tokenContract.approve(dogMarketAddress, tokenId);
       await approveTx.wait();
 
       let commissionFee = await marketContract.getCommissionFee();
       commissionFee = commissionFee.toString();
 
+      setMessageInfo1();
+      setMessageInfo2("#2\nCreate a new market listing.");
+      setTimeout(() => {
+        setMessageInfo2("");
+      }, 10000);
+
+      // actual sale transaction
       const transaction = await marketContract.sellMyNFT(
         dogTokenAddress,
         contractId,
@@ -141,46 +165,94 @@ export default function MyNFTs() {
       const marketTx = await transaction.wait();
       if (marketTx.byzantium == true) {
         setMarketTransactionHash(marketTx.transactionHash);
-        toast.success("Market Item Created successfully", {
-          theme: "colored",
-        });
+        setMessageInfo();
+        setMessageInfo2();
+        setMessageSuccess("Item successfully listed to the Market.");
+        setTimeout(() => {
+          setMessageSuccess("");
+        }, 4000);
+        setSalePrice();
       }
     } catch (e) {
       console.log("Error:", e);
-      setIsTransacting(false);
-      setIsLoading(false);
       let errorMessage = e.message;
       if (e.message.includes("user rejected transaction")) {
-        errorMessage = "User rejected transaction";
+        errorMessage = "User rejected the Wallet transaction.";
       }
       if (e.message.includes("ERC721: invalid token ID")) {
-        errorMessage = "ERC721: invalid token ID";
+        errorMessage = "ERC721: invalid token ID.";
       }
-
-      toast.error(errorMessage, {
-        theme: "colored",
-      });
+      setMessageInfo();
+      setMessageInfo1();
+      setMessageInfo2();
+      setMessageError(errorMessage);
+      setTimeout(() => {
+        setMessageError("");
+      }, 4000);
+      setSalePrice();
     }
     loadNFTs();
   }
 
   if (loadingState === "loaded" && !nfts.length)
     return (
-      <div className="grid place-items-center">
-        <h1 className="mt-8 pt-8 px-20 text-3xl text-center">
-          You don't currently own any NFTs.
-        </h1>
-
-        <div className="grid place-items-center border-solid border-2 rounded-lg border-blue-700 mt-20">
-          <h1 className="pt-8 pb-8 px-20 text-3xl text-center">
-            You can Purchase one from the Market page!
+      <div>
+          <h1 className="py-10 px-20 text-4xl font-bold text-center">
+        NFTs You Currently Own
+      </h1>
+      <div className="justify-center">
+            <div className="">
+              {messageInfo && (
+                <h1 className="mt-6 mb-6 mr-20 ml-20 whitespace-pre-wrap place-items-center border border-black rounded bg-yellow-400 h-30 text-center p-6 text-xl">
+                  {messageInfo}
+                </h1>
+              )}
+            </div>
+            <div className="">
+              {messageInfo1 && (
+                <h1 className="mt-6 mb-6 mr-20 ml-20 whitespace-pre-wrap place-items-center border border-black rounded bg-yellow-200 h-30 text-center p-6 text-xl">
+                  {messageInfo1}
+                </h1>
+              )}
+            </div>
+            <div className="">
+              {messageInfo2 && (
+                <h1 className="mt-6 mb-6 mr-20 ml-20 whitespace-pre-wrap place-items-center border border-black rounded bg-yellow-200 h-30 text-center p-6 text-xl">
+                  {messageInfo2}
+                </h1>
+              )}
+            </div>
+            <div className="">
+              {messageSuccess && (
+                <h1 className="mt-6 mb-6 mr-20 ml-20 whitespace-pre-wrap place-items-center border border-black rounded bg-green-300 h-30 text-center p-6 text-xl">
+                  {messageSuccess}
+                </h1>
+              )}
+            </div>
+            <div className="">
+              {messageError && (
+                <h1 className="mt-6 mb-6 mr-20 ml-20 border border-black place-items-center rounded bg-red-500 h-30 text-center p-6 text-xl">
+                  {messageError}
+                </h1>
+              )}
+            </div>
+          </div>
+        <div className="grid place-items-center">
+          <h1 className="mt-8 pt-8 px-20 text-3xl text-center">
+            You don't currently own any NFTs.
           </h1>
-          <button
-            className="w-80 items-center mb-8 font-bold mt-4 bg-blue-700 text-white rounded p-4 shadow-lg"
-            onClick={reRoute}
-          >
-            Market
-          </button>
+      
+          <div className="grid place-items-center border-solid border-2 rounded-lg border-blue-700 mt-20">
+            <h1 className="pt-8 pb-8 px-20 text-3xl text-center">
+              You can Purchase one from the Market page!
+            </h1>
+            <button
+              className="w-80 items-center mb-8 font-bold mt-4 bg-blue-700 text-white rounded p-4 shadow-lg"
+              onClick={reRoute}
+            >
+              Market
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -189,12 +261,52 @@ export default function MyNFTs() {
       <h1 className="py-10 px-20 text-4xl font-bold text-center">
         NFTs You Currently Own
       </h1>
-      <ToastContainer position="top-center" pauseOnFocusLoss={false} />
+      <div className="justify-center">
+        <div className="">
+          {messageInfo && (
+            <h1 className="mt-6 mb-6 mr-20 ml-20 whitespace-pre-wrap place-items-center border border-black rounded bg-yellow-400 h-30 text-center p-6 text-xl">
+              {messageInfo}
+            </h1>
+          )}
+        </div>
+        <div className="">
+          {messageInfo1 && (
+            <h1 className="mt-6 mb-6 mr-20 ml-20 whitespace-pre-wrap place-items-center border border-black rounded bg-yellow-200 h-30 text-center p-6 text-xl">
+              {messageInfo1}
+            </h1>
+          )}
+        </div>
+        <div className="">
+          {messageInfo2 && (
+            <h1 className="mt-6 mb-6 mr-20 ml-20 whitespace-pre-wrap place-items-center border border-black rounded bg-yellow-200 h-30 text-center p-6 text-xl">
+              {messageInfo2}
+            </h1>
+          )}
+        </div>
+        <div className="">
+          {messageSuccess && (
+            <h1 className="mt-6 mb-6 mr-20 ml-20 whitespace-pre-wrap place-items-center border border-black rounded bg-green-300 h-30 text-center p-6 text-xl">
+              {messageSuccess}
+            </h1>
+          )}
+        </div>
+        <div className="">
+          {messageError && (
+            <h1 className="mt-6 mb-6 mr-20 ml-20 border border-black place-items-center rounded bg-red-500 h-30 text-center p-6 text-xl">
+              {messageError}
+            </h1>
+          )}
+        </div>
+      </div>
+
       <div className="flex justify-center">
         <div className="p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
             {nfts.map((nft, i) => (
-              <div key={i} className="border shadow rounded-xl overflow-hidden mb-10">
+              <div
+                key={i}
+                className="border shadow rounded-xl overflow-hidden mb-10 mx-2"
+              >
                 <div className="p-4 bg-black">
                   <p
                     style={{ height: "32px" }}
@@ -211,8 +323,8 @@ export default function MyNFTs() {
                   alt="nft"
                   src={nft.image}
                   style={{
-                    width: "450px",
-                    height: "250px",
+                    width: "350px",
+                    height: "350px",
                     objectFit: "cover",
                   }}
                   width={350}
