@@ -70,6 +70,6 @@ describe("SellNFT", function () {
       })
     );
     console.log("nfts", nfts);
-
+    expect(nfts.length).to.be.equal(1);
   });
 });
