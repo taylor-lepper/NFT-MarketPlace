@@ -74,5 +74,7 @@ describe("GetMyNFTs", function () {
       })
     );
     console.log("myNFTs", myNFTs);
+    expect(myNFTs.length).to.be.equal(1);
+    expect(nfts.length).to.be.equal(0);
   });
 });

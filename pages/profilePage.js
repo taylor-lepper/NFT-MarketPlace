@@ -23,7 +23,6 @@ export default function CreatorDashboard() {
   const [buttonId, setButtonId] = useState(null);
   const [salePrice, setSalePrice] = useState();
   const [loadingState, setLoadingState] = useState("not-loaded");
-  const [marketTransactionHash, setMarketTransactionHash] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -67,7 +66,7 @@ export default function CreatorDashboard() {
         const url = `https://nftstorage.link/ipfs/${link}`;
         let price = ethers.utils.formatUnits(token.price.toString(), "ether");
         let item = {
-          contractId: token.contractId.toNumber(),
+          marketId: token.marketId.toNumber(),
           price,
           tokenId: token.tokenId.toNumber(),
           seller: token.seller,
@@ -101,14 +100,20 @@ export default function CreatorDashboard() {
 
    // sell an owned NFT back to market
    async function sellNFT(nft) {
+    window.scrollTo({
+      top: 0, 
+      behavior: 'smooth'
+      /* you can also use 'auto' behaviour
+         in place of 'smooth' */
+    });
     const web3Modal = new Web3Modal();
     const connection = await web3Modal.connect();
     const provider = new ethers.providers.Web3Provider(connection);
     const signer = provider.getSigner();
 
     const tokenId = nft.tokenId;
-    const contractId = nft.contractId;
-    console.log("contractId", contractId);
+    const marketId = nft.marketId;
+    console.log("marketId", marketId);
     console.log("salePrice", salePrice);
     console.log("price", nft.price);
 
@@ -165,7 +170,7 @@ export default function CreatorDashboard() {
       // actual sale transaction
       const transaction = await marketContract.sellMyNFT(
         dogTokenAddress,
-        contractId,
+        marketId,
         price,
         {
           value: commissionFee,
@@ -175,7 +180,6 @@ export default function CreatorDashboard() {
 
       const marketTx = await transaction.wait();
       if (marketTx.byzantium == true) {
-        setMarketTransactionHash(marketTx.transactionHash);
         setMessageInfo();
         setMessageInfo2();
         setMessageSuccess("Item successfully listed to the Market.");
@@ -212,8 +216,8 @@ export default function CreatorDashboard() {
          <h1 className="py-10 px-20 text-4xl font-bold text-center">
         NFTs You Have Created
       </h1>
-   <div className="grid place-items-center h-screen">
-        <h1 className="mt-8 pt-8 px-20 text-3xl text-center">
+   <div className="grid place-items-center">
+        <h1 className="mt-8 pt-8 px-20  text-3xl text-center">
           You haven't created any NFTs.
         </h1>
 
@@ -239,6 +243,18 @@ export default function CreatorDashboard() {
         NFTs You Have Created
       </h1>
       <div className="justify-center">
+
+      {loadingState === "not-loaded" && (
+          <div class="flex align-center justify-center h-30 mt-2 mb-6 mr-20 ml-20 border border-black rounded w-5/6 bg-yellow-400 ">
+            <h1 className="text-center p-6 text-3xl font-semi-bold">
+              Loading...{" "}
+            </h1>
+            <div class="my-5 w-12 h-12 animate-spin rounded-full bg-gradient-to-r from-purple-400 via-blue-500 to-red-400">
+              <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-gray-200 rounded-full border-2 border-white"></div>
+            </div>
+          </div>
+        )}
+        
       <div className="">
         {messageInfo && (
           <h1 className="mt-6 mb-6 mr-20 ml-20 whitespace-pre-wrap place-items-center border border-black rounded bg-yellow-400 h-30 text-center p-6 text-xl">

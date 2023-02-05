@@ -51,6 +51,12 @@ export default function CreateItem() {
 
   // creates item and saves it to ipfs
   async function createItem() {
+    window.scrollTo({
+      top: 0, 
+      behavior: 'smooth'
+      /* you can also use 'auto' behaviour
+         in place of 'smooth' */
+    });
     console.log("name: ", name);
     console.log("description: ", description);
     console.log("price: ", price);

@@ -23,24 +23,37 @@ describe("SellNFT", function () {
     const auctionPrice = ethers.utils.parseUnits("1", "ether");
     const auctionPrice22 = ethers.utils.parseUnits("22", "ether");
 
+    // get test address from ethers, add more for more addresses [_, buyerAddress, thirdAddress, fourthAddress, etc] (underscore is sellerAddress, skip with _)
+    const [creatorAddress, buyerAddress] = await ethers.getSigners();
 
     // create NFT
     await dogToken.createDogToken("https://www.token.com");
 
-    // get test address from ethers, add more for more addresses [_, buyerAddress, thirdAddress, fourthAddress, etc] (underscore is sellerAddress, skip with _)
-    const [sellerAddress, buyerAddress] = await ethers.getSigners();
 
     // place NFT for sale on market
-    await dogMarket.connect(sellerAddress).createDogNFT(dogTokenAddress, 1, auctionPrice, {
+    await dogMarket.connect(creatorAddress).createDogNFT(dogTokenAddress, 1, auctionPrice, {
       value: commissionFee,
     });
 
+        // use marketAddress to connect to market, post item 1 to market
+        await dogMarket
+        .connect(buyerAddress)
+        .transferDogNFT(dogTokenAddress, 1, { value: auctionPrice });
+
+
+
+        // approve the market contract to transfer the NFT
+        const approveTx = await dogToken.connect(buyerAddress).approve(dogMarketAddress, 1);
+        await approveTx.wait();
+
     // use buyerAddress to connect to market, sell item 1
-    await dogMarket.connect(buyerAddress).transferDogNFT(dogTokenAddress, 1, { value: auctionPrice });
-
-    await dogMarket.connect(buyerAddress).sellMyNFT(dogTokenAddress, 1, auctionPrice22, {value: commissionFee});
-
+    const transaction = await dogMarket.connect(buyerAddress).sellMyNFT(dogTokenAddress, 1, auctionPrice22, {value: commissionFee});
+    const marketTx = await transaction.wait();
+    
+    console.log("here");
+    // get all nfts from market
     let nfts = await dogMarket.getAllNFTs();
+
     // make items more readable
     nfts = await Promise.all(
       nfts.map(async (token) => {

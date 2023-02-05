@@ -57,7 +57,7 @@ export default function Market() {
         const url = `https://nftstorage.link/ipfs/${link}`;
         // set up item for viewing on market
         let item = {
-          contractId: token.contractId.toNumber(),
+          marketId: token.marketId.toNumber(),
           price,
           tokenId: token.tokenId.toNumber(),
           seller: token.seller,
@@ -71,7 +71,9 @@ export default function Market() {
         return item;
       })
     );
-    getFloorPrice(nftsForSale);
+    if (nftsForSale.length > 0) {
+      getFloorPrice(nftsForSale);
+    }
     let nftsSorted = nftsForSale.sort((nft1, nft2) =>
       nft1.tokenId > nft2.tokenId ? 1 : nft1.tokenId < nft2.tokenId ? -1 : 0
     );
@@ -81,6 +83,12 @@ export default function Market() {
   }
 
   async function buyNFT(nft) {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+      /* you can also use 'auto' behaviour
+         in place of 'smooth' */
+    });
     const web3Modal = new Web3Modal();
     const connection = await web3Modal.connect();
     const provider = new ethers.providers.Web3Provider(connection);
@@ -92,7 +100,7 @@ export default function Market() {
       signer
     );
 
-    console.log("contractId", nft.contractId);
+    console.log("marketId", nft.marketId);
     const price = ethers.utils.parseUnits(nft.price.toString(), "ether");
 
     try {
@@ -104,14 +112,14 @@ export default function Market() {
       }, 6000);
       const purchaseTxn = await contract.transferDogNFT(
         dogTokenAddress,
-        nft.contractId,
+        nft.marketId,
         {
           value: price,
         }
       );
       await purchaseTxn.wait();
       loadNFTs();
-
+      setMessageInfo();
       setMessageSuccess("Purchase successful. View under My NFTs.");
       setTimeout(() => {
         setMessageSuccess("");
@@ -132,8 +140,9 @@ export default function Market() {
 
   const getFloorPrice = (nfts) => {
     let nftSortByPrice = nfts.sort((nft1, nft2) =>
-      nft1.price > nft2.price ? 1 : nft1.price < nft2.price ? -1 : 0
+      +nft1.price > +nft2.price ? 1 : +nft1.price < +nft2.price ? -1 : 0
     );
+    console.log("nftSortByPrice", nftSortByPrice);
     let floorPrice = nftSortByPrice[0].price;
     console.log("floorPrice: ", floorPrice, "ETH");
     setFloor(floorPrice);
@@ -180,6 +189,18 @@ export default function Market() {
       <h1 className="pt-8 pb-8 px-20 text-4xl font-bold text-center">
         NFTs Currently For Sale
       </h1>
+  
+        {loadingState === "not-loaded" && (
+          <div class="flex align-center justify-center h-30 mt-2 mb-6 mr-20 ml-20 border border-black rounded w-5/6 bg-yellow-400 ">
+            <h1 className="text-center p-6 text-3xl font-semi-bold">
+              Loading...{" "}
+            </h1>
+            <div class="my-5 w-12 h-12 animate-spin rounded-full bg-gradient-to-r from-purple-400 via-blue-500 to-red-400">
+              <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-gray-200 rounded-full border-2 border-white"></div>
+            </div>
+          </div>
+        )}
+ 
       <div className="">
         {messageInfo && (
           <h1 className="mt-6 mb-6 mr-20 ml-20 whitespace-pre-wrap border border-black rounded bg-yellow-400 h-30 text-center p-6 text-xl">

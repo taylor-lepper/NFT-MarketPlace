@@ -31,4 +31,8 @@ contract DogToken is ERC721URIStorage {
         
         return newDogId;
     }
+
+    function getContractAddress() public view returns(address){
+        return contractAddress;
+    }
 }
