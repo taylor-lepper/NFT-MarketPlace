@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Image from "next/image";
 
-import { dogTokenAddress, dogMarketAddress } from "../config";
+// import { dogTokenAddress, dogMarketAddress } from "../config";
+import { dogTokenAddressGoerli, dogMarketAddressGoerli } from "../config";
 
 import DogToken from "../artifacts/contracts/DogToken.sol/DogToken.json";
 import DogMarket from "../artifacts/contracts/DogMarket.sol/DogMarket.json";
@@ -17,6 +18,7 @@ export default function Market() {
   const [nfts, setNfts] = useState([]);
   const [floor, setFloor] = useState("");
   const [loadingState, setLoadingState] = useState("not-loaded");
+  const [transacting, setTransacting] = useState("not-transacting");
   const router = useRouter();
 
   useEffect(() => {
@@ -31,14 +33,19 @@ export default function Market() {
   };
 
   async function loadNFTs() {
-    const provider = new ethers.providers.JsonRpcProvider();
+    // const provider = new ethers.providers.JsonRpcProvider();
+    const INFURA_PROJECT_ID = "84516ca20ad64919946349869d0a94cd";
+		const provider = new ethers.providers.InfuraProvider(
+			"goerli",
+			INFURA_PROJECT_ID
+		);
     const dogTokenContract = new ethers.Contract(
-      dogTokenAddress,
+      dogTokenAddressGoerli,
       DogToken.abi,
       provider
     );
     const dogMarketContract = new ethers.Contract(
-      dogMarketAddress,
+      dogMarketAddressGoerli,
       DogMarket.abi,
       provider
     );
@@ -95,7 +102,7 @@ export default function Market() {
 
     const signer = provider.getSigner();
     const contract = new ethers.Contract(
-      dogMarketAddress,
+      dogMarketAddressGoerli,
       DogMarket.abi,
       signer
     );
@@ -104,20 +111,23 @@ export default function Market() {
     const price = ethers.utils.parseUnits(nft.price.toString(), "ether");
 
     try {
+     
       setMessageInfo(
         "Confirm the transaction to purchase the NFT.\nIf you've changed your mind, simply click 'reject.'"
       );
       setTimeout(() => {
         setMessageInfo("");
-      }, 6000);
+      }, 160000);
       const purchaseTxn = await contract.transferDogNFT(
-        dogTokenAddress,
+        dogTokenAddressGoerli,
         nft.marketId,
         {
           value: price,
         }
       );
+      setTransacting("transacting");
       await purchaseTxn.wait();
+      setTransacting("not-transacting");
       loadNFTs();
       setMessageInfo();
       setMessageSuccess("Purchase successful. View under My NFTs.");
@@ -130,12 +140,17 @@ export default function Market() {
       if (e.message.includes("user rejected transaction")) {
         errorMessage = "User rejected the Wallet transaction";
       }
+      if (e.message.includes("insufficient funds")) {
+        errorMessage = "You have insufficient funds to complete the transaction";
+      }
+      setMessageInfo();
       setMessageError(errorMessage);
       setTimeout(() => {
         setMessageError("");
       }, 4000);
       return;
     }
+    setTransacting("not-transacting");
   }
 
   const getFloorPrice = (nfts) => {
@@ -189,14 +204,24 @@ export default function Market() {
       <h1 className="pt-8 pb-8 px-20 text-4xl font-bold text-center">
         NFTs Currently For Sale
       </h1>
-  
+      {transacting === "transacting" && (
+          <div className="flex align-center text-center mr-20 ml-20 justify-center h-30 mt-2 mb-6 border border-black rounded bg-green-300 ">
+            <h1 className="text-center p-6 text-3xl font-semi-bold">
+              Transacting...{" "}
+            </h1>
+            <div className="my-5 w-12 h-12 animate-spin rounded-full bg-gradient-to-r from-purple-400 via-blue-500 to-red-400">
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-gray-200 rounded-full border-2 border-white"></div>
+            </div>
+          </div>
+        )}
+
         {loadingState === "not-loaded" && (
-          <div class="flex align-center justify-center h-30 mt-2 mb-6 mr-20 ml-20 border border-black rounded w-5/6 bg-yellow-400 ">
+          <div className="flex align-center justify-center h-30 mt-2 mb-6 mr-20 ml-20 border border-black rounded bg-yellow-400 ">
             <h1 className="text-center p-6 text-3xl font-semi-bold">
               Loading...{" "}
             </h1>
-            <div class="my-5 w-12 h-12 animate-spin rounded-full bg-gradient-to-r from-purple-400 via-blue-500 to-red-400">
-              <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-gray-200 rounded-full border-2 border-white"></div>
+            <div className="my-5 w-12 h-12 animate-spin rounded-full bg-gradient-to-r from-purple-400 via-blue-500 to-red-400">
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-gray-200 rounded-full border-2 border-white"></div>
             </div>
           </div>
         )}

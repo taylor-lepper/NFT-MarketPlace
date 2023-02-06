@@ -6,7 +6,8 @@ import Web3Modal from "web3modal";
 import Image from "next/image";
 
 // contract addresses
-import { dogTokenAddress, dogMarketAddress } from "../config";
+// import { dogTokenAddress, dogMarketAddress } from "../config";
+import { dogTokenAddressGoerli, dogMarketAddressGoerli } from "../config";
 
 // contracts
 import DogToken from "../artifacts/contracts/DogToken.sol/DogToken.json";
@@ -19,6 +20,7 @@ export default function MyNFTs() {
   const [messageSuccess, setMessageSuccess] = useState(null);
   const [messageError, setMessageError] = useState(null);
   const [nfts, setNfts] = useState([]);
+  const [transacting, setTransacting] = useState("not-transacting");
   const [loadingState, setLoadingState] = useState("not-loaded");
   const [salePrice, setSalePrice] = useState();
   const [buttonId, setButtonId] = useState(null);
@@ -44,12 +46,12 @@ export default function MyNFTs() {
     const signer = provider.getSigner();
 
     const marketContract = new ethers.Contract(
-      dogMarketAddress,
+      dogMarketAddressGoerli,
       DogMarket.abi,
       signer
     );
     const tokenContract = new ethers.Contract(
-      dogTokenAddress,
+      dogTokenAddressGoerli,
       DogToken.abi,
       signer
     );
@@ -123,15 +125,15 @@ export default function MyNFTs() {
       );
       setTimeout(() => {
         setMessageInfo("");
-      }, 16000);
+      }, 160000);
       const marketContract = new ethers.Contract(
-        dogMarketAddress,
+        dogMarketAddressGoerli,
         DogMarket.abi,
         signer
       );
 
       const tokenContract = new ethers.Contract(
-        dogTokenAddress,
+        dogTokenAddressGoerli,
         DogToken.abi,
         signer
       );
@@ -141,11 +143,13 @@ export default function MyNFTs() {
       );
       setTimeout(() => {
         setMessageInfo1("");
-      }, 10000);
+      }, 100000);
 
       // approve the market contract to transfer the NFT
-      const approveTx = await tokenContract.approve(dogMarketAddress, tokenId);
+      const approveTx = await tokenContract.approve(dogMarketAddressGoerli, tokenId);
+      setTransacting("transacting");
       await approveTx.wait();
+      setTransacting("not-transacting");
 
       let commissionFee = await marketContract.getCommissionFee();
       commissionFee = commissionFee.toString();
@@ -154,11 +158,11 @@ export default function MyNFTs() {
       setMessageInfo2("#2\nCreate a new market listing.");
       setTimeout(() => {
         setMessageInfo2("");
-      }, 10000);
+      }, 100000);
 
       // actual sale transaction
       const transaction = await marketContract.sellMyNFT(
-        dogTokenAddress,
+        dogTokenAddressGoerli,
         marketId,
         price,
         {
@@ -166,9 +170,12 @@ export default function MyNFTs() {
         }
       );
       console.log("transaction", transaction);
+      setTransacting("transacting");
 
       const marketTx = await transaction.wait();
+
       if (marketTx.byzantium == true) {
+        setTransacting("not-transacting");
         setMessageInfo();
         setMessageInfo2();
         setMessageSuccess("Item successfully listed to the Market.");
@@ -195,6 +202,7 @@ export default function MyNFTs() {
       }, 4000);
       setSalePrice();
     }
+    setTransacting("not-transacting");
     loadNFTs();
   }
 
@@ -267,13 +275,25 @@ export default function MyNFTs() {
       </h1>
       <div className="justify-center">
 
+        
+      {transacting === "transacting" && (
+          <div className="flex align-center text-center mr-20 ml-20 justify-center h-30 mt-6 mb-6 border border-black rounded bg-green-300 ">
+            <h1 className="text-center p-6 text-3xl font-semi-bold">
+              Transacting...{" "}
+            </h1>
+            <div className="my-5 w-12 h-12 animate-spin rounded-full bg-gradient-to-r from-purple-400 via-blue-500 to-red-400">
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-gray-200 rounded-full border-2 border-white"></div>
+            </div>
+          </div>
+        )}
+
       {loadingState === "not-loaded" && (
-          <div class="flex align-center justify-center h-30 mt-2 mb-6 mr-20 ml-20 border border-black rounded w-5/6 bg-yellow-400 ">
+          <div className="flex align-center justify-center h-30 mt-2 mb-6 mr-20 ml-20 border border-black rounded bg-yellow-400 ">
             <h1 className="text-center p-6 text-3xl font-semi-bold">
               Loading...{" "}
             </h1>
-            <div class="my-5 w-12 h-12 animate-spin rounded-full bg-gradient-to-r from-purple-400 via-blue-500 to-red-400">
-              <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-gray-200 rounded-full border-2 border-white"></div>
+            <div className="my-5 w-12 h-12 animate-spin rounded-full bg-gradient-to-r from-purple-400 via-blue-500 to-red-400">
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-gray-200 rounded-full border-2 border-white"></div>
             </div>
           </div>
         )}

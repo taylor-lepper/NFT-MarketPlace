@@ -5,24 +5,28 @@ import axios from "axios";
 import Web3Modal from "web3modal";
 import Image from "next/image";
 
-import { dogTokenAddress, dogMarketAddress } from "../config";
+// import { dogTokenAddress, dogMarketAddress } from "../config";
+import { dogTokenAddressGoerli, dogMarketAddressGoerli } from "../config";
 
 import DogToken from "../artifacts/contracts/DogToken.sol/DogToken.json";
 import DogMarket from "../artifacts/contracts/DogMarket.sol/DogMarket.json";
 
 
 export default function CreatorDashboard() {
+  // messages
+  const [transacting, setTransacting] = useState("not-transacting");
+  const [loadingState, setLoadingState] = useState("not-loaded");
   const [messageInfo, setMessageInfo] = useState(null);
   const [messageInfo1, setMessageInfo1] = useState(null);
   const [messageInfo2, setMessageInfo2] = useState(null);
   const [messageSuccess, setMessageSuccess] = useState(null);
   const [messageError, setMessageError] = useState(null);
+  // state 
   const [nfts, setNfts] = useState([]);
   const [sold, setSold] = useState([]);
   const [owned, setOwned] = useState([]);
   const [buttonId, setButtonId] = useState(null);
   const [salePrice, setSalePrice] = useState();
-  const [loadingState, setLoadingState] = useState("not-loaded");
   const router = useRouter();
 
   useEffect(() => {
@@ -45,12 +49,12 @@ export default function CreatorDashboard() {
     const signer = provider.getSigner();
 
     const dogMarketContract = new ethers.Contract(
-      dogMarketAddress,
+      dogMarketAddressGoerli,
       DogMarket.abi,
       signer
     );
     const dogTokenContract = new ethers.Contract(
-      dogTokenAddress,
+      dogTokenAddressGoerli,
       DogToken.abi,
       signer
     );
@@ -134,15 +138,15 @@ export default function CreatorDashboard() {
       );
       setTimeout(() => {
         setMessageInfo("");
-      }, 16000);
+      }, 160000);
       const marketContract = new ethers.Contract(
-        dogMarketAddress,
+        dogMarketAddressGoerli,
         DogMarket.abi,
         signer
       );
 
       const tokenContract = new ethers.Contract(
-        dogTokenAddress,
+        dogTokenAddressGoerli,
         DogToken.abi,
         signer
       );
@@ -152,11 +156,13 @@ export default function CreatorDashboard() {
       );
       setTimeout(() => {
         setMessageInfo1("");
-      }, 10000);
+      }, 60000);
 
       // approve the market contract to transfer the NFT
-      const approveTx = await tokenContract.approve(dogMarketAddress, tokenId);
+      const approveTx = await tokenContract.approve(dogMarketAddressGoerli, tokenId);
+      setTransacting("transacting");
       await approveTx.wait();
+      setTransacting("not-transacting");
 
       let commissionFee = await marketContract.getCommissionFee();
       commissionFee = commissionFee.toString();
@@ -165,11 +171,11 @@ export default function CreatorDashboard() {
       setMessageInfo2("#2\nCreate a new market listing.");
       setTimeout(() => {
         setMessageInfo2("");
-      }, 10000);
+      }, 60000);
 
       // actual sale transaction
       const transaction = await marketContract.sellMyNFT(
-        dogTokenAddress,
+        dogTokenAddressGoerli,
         marketId,
         price,
         {
@@ -177,9 +183,10 @@ export default function CreatorDashboard() {
         }
       );
       console.log("transaction", transaction);
-
+      setTransacting("transacting");
       const marketTx = await transaction.wait();
       if (marketTx.byzantium == true) {
+        setTransacting("not-transacting");
         setMessageInfo();
         setMessageInfo2();
         setMessageSuccess("Item successfully listed to the Market.");
@@ -206,6 +213,7 @@ export default function CreatorDashboard() {
       }, 4000);
       setSalePrice();
     }
+    setTransacting("not-transacting");
     loadNFTs();
   }
 
@@ -244,17 +252,28 @@ export default function CreatorDashboard() {
       </h1>
       <div className="justify-center">
 
-      {loadingState === "not-loaded" && (
-          <div class="flex align-center justify-center h-30 mt-2 mb-6 mr-20 ml-20 border border-black rounded w-5/6 bg-yellow-400 ">
+      {transacting === "transacting" && (
+          <div className="flex align-center text-center mr-20 ml-20 justify-center h-30 mt-2 mb-6 border border-black rounded bg-green-300 ">
             <h1 className="text-center p-6 text-3xl font-semi-bold">
-              Loading...{" "}
+              Transacting...{" "}
             </h1>
-            <div class="my-5 w-12 h-12 animate-spin rounded-full bg-gradient-to-r from-purple-400 via-blue-500 to-red-400">
-              <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-gray-200 rounded-full border-2 border-white"></div>
+            <div className="my-5 w-12 h-12 animate-spin rounded-full bg-gradient-to-r from-purple-400 via-blue-500 to-red-400">
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-gray-200 rounded-full border-2 border-white"></div>
             </div>
           </div>
         )}
-        
+
+      {loadingState === "not-loaded" && (
+          <div className="flex align-center justify-center h-30 mt-2 mb-6 mr-20 ml-20 border border-black rounded bg-yellow-400 ">
+            <h1 className="text-center p-6 text-3xl font-semi-bold">
+              Loading...{" "}
+            </h1>
+            <div className="my-5 w-12 h-12 animate-spin rounded-full bg-gradient-to-r from-purple-400 via-blue-500 to-red-400">
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-gray-200 rounded-full border-2 border-white"></div>
+            </div>
+          </div>
+        )}
+
       <div className="">
         {messageInfo && (
           <h1 className="mt-6 mb-6 mr-20 ml-20 whitespace-pre-wrap place-items-center border border-black rounded bg-yellow-400 h-30 text-center p-6 text-xl">

@@ -5,7 +5,8 @@ import Web3Modal from "web3modal";
 import { NFTStorage } from "nft.storage";
 import Image from "next/image";
 
-import { dogTokenAddress, dogMarketAddress } from "../config";
+// import { dogTokenAddress, dogMarketAddress } from "../config";
+import { dogTokenAddressGoerli, dogMarketAddressGoerli } from "../config";
 
 import DogToken from "../artifacts/contracts/DogToken.sol/DogToken.json";
 import DogMarket from "../artifacts/contracts/DogMarket.sol/DogMarket.json";
@@ -19,6 +20,7 @@ export default function CreateItem() {
   const [price, setPrice] = useState("");
   const [fileUrl, setFileUrl] = useState(null);
   // messages
+  const [transacting, setTransacting] = useState("not-transacting");
   const [messageInfo, setMessageInfo] = useState(null);
   const [messageInfo1, setMessageInfo1] = useState(null);
   const [messageInfo2, setMessageInfo2] = useState(null);
@@ -113,7 +115,7 @@ export default function CreateItem() {
     const signer = provider.getSigner();
 
     const tokenContract = new ethers.Contract(
-      dogTokenAddress,
+      dogTokenAddressGoerli,
       DogToken.abi,
       signer
     );
@@ -125,12 +127,14 @@ export default function CreateItem() {
       const tokenTransaction = await tokenContract.createDogToken(
         nftStorageData
       );
+      setTransacting("transacting");
       let tokenTxn = await tokenTransaction.wait();
 
       console.log("tokenTxn: ", tokenTxn);
       console.log("tokenTxn.gasUsed:", tokenTxn.gasUsed.toString());
       if (tokenTxn.byzantium == true) {
         setMessageSuccess("Token created successfully");
+        setTransacting("not-transacting");
         setTimeout(() => {
           setMessageSuccess("");
         }, 6000);
@@ -144,7 +148,7 @@ export default function CreateItem() {
         .toString();
 
       const marketContract = new ethers.Contract(
-        dogMarketAddress,
+        dogMarketAddressGoerli,
         DogMarket.abi,
         signer
       );
@@ -158,16 +162,18 @@ export default function CreateItem() {
       }, 8000);
       // creation of market listing
       const marketTransaction = await marketContract.createDogNFT(
-        dogTokenAddress,
+        dogTokenAddressGoerli,
         tokenId,
         priceEthers,
         {
           value: commissionFee,
         }
       );
+      setTransacting("transacting");
       const marketTxn = await marketTransaction.wait();
       console.log("marketTxn", marketTxn);
       if (marketTxn.byzantium == true) {
+        setTransacting("not-transacting");
         setName("");
         setDescription("");
         setPrice("");
@@ -198,6 +204,7 @@ export default function CreateItem() {
       }, 4000);
       return;
     }
+    setTransacting("not-transacting");
   }
 
   const reRouteMarket = () => {
@@ -209,6 +216,18 @@ export default function CreateItem() {
       <div className="">
         <p className="text-4xl font-bold pt-8 text-center">Create an NFT</p>
         <div className="justify-center">
+
+        {transacting === "transacting" && (
+          <div className="flex align-center text-center mr-20 ml-20 justify-center h-30 mt-6 mb-6 border border-black rounded bg-green-300 ">
+            <h1 className="text-center p-6 text-3xl font-semi-bold">
+              Transacting...{" "}
+            </h1>
+            <div className="my-5 w-12 h-12 animate-spin rounded-full bg-gradient-to-r from-purple-400 via-blue-500 to-red-400">
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-gray-200 rounded-full border-2 border-white"></div>
+            </div>
+          </div>
+        )}
+
           <div className="">
             {messageInfo && (
               <h1 className="mt-6 mb-6 mr-20 ml-20 whitespace-pre-wrap place-items-center border border-black rounded bg-yellow-400 h-30 text-center p-6 text-xl">
